@@ -56,7 +56,7 @@ export const routesSection: RouteObject[] = [
     ],
   },
   {
-    path: 'sign-in',
+    path: 'signin',
     element: (
       <AuthLayout>
         <SignInPage />

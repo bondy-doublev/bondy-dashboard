@@ -15,6 +15,7 @@ import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 import { useRouter, usePathname } from 'src/routes/hooks';
 
 import { _myAccount } from 'src/_mock';
+import { Link } from 'react-router-dom';
 
 // ----------------------------------------------------------------------
 
@@ -129,9 +130,11 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
         <Divider sx={{ borderStyle: 'dashed' }} />
 
         <Box sx={{ p: 1 }}>
-          <Button fullWidth color="error" size="medium" variant="text">
-            Logout
-          </Button>
+          <Link to={'/signin'}>
+            <Button fullWidth color="error" size="medium" variant="text">
+              Logout
+            </Button>
+          </Link>
         </Box>
       </Popover>
     </>
