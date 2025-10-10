@@ -1,46 +1,140 @@
-import { useState, useCallback } from 'react';
+/* eslint-disable react/jsx-boolean-value */
+/* eslint-disable perfectionist/sort-imports */
+import { useState, useCallback, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
-import TableBody from '@mui/material/TableBody';
 import Typography from '@mui/material/Typography';
-import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
-
-import { _users } from 'src/_mock';
+import { TextField } from '@mui/material';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
-import { TableNoData } from '../table-no-data';
-import { UserTableRow } from '../user-table-row';
-import { UserTableHead } from '../user-table-head';
-import { TableEmptyRows } from '../table-empty-rows';
-import { UserTableToolbar } from '../user-table-toolbar';
-import { emptyRows, applyFilter, getComparator } from '../utils';
-
-import type { UserProps } from '../user-table-row';
-
-// ----------------------------------------------------------------------
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useAuthStore } from 'src/stores/authStore';
+import { userService } from 'src/services/userService';
+import UserTable from '../user-table';
+import EditUserDialog from '../components/EditUserDialog';
+import { useTable } from 'src/hooks/useTable';
+import ConfirmModal from 'src/components/modal/ConfirmModal';
+import { useDebounce } from 'src/hooks/useDebounce';
 
 export function UserView() {
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
   const table = useTable();
+  const [users, setUsers] = useState<any[]>([]);
+  const [openEditForm, setEditOpenForm] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [searchCode, setSearchCode] = useState('');
+  const [confirmToggleOpen, setConfirmToggleOpen] = useState(false);
+  const [selectedUserToToggle, setSelectedUserToToggle] = useState<any>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [selectedUserToDelete, setSelectedUserToDelete] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
 
-  const [filterName, setFilterName] = useState('');
+  const handleAskDelete = (user: any) => {
+    setSelectedUserToDelete(user);
+    setConfirmDeleteOpen(true);
+  };
 
-  const dataFiltered: UserProps[] = applyFilter({
-    inputData: _users,
-    comparator: getComparator(table.order, table.orderBy),
-    filterName,
-  });
+  const handleConfirmDelete = async () => {
+    if (!selectedUserToDelete) return;
+    try {
+      await userService.deleteUser(selectedUserToDelete.id);
+      toast.success('User deleted successfully');
+      handleGetAllUser();
+    } catch (error) {
+      console.error('Delete failed:', error);
+      toast.error('Failed to delete user');
+    } finally {
+      setConfirmDeleteOpen(false);
+      setSelectedUserToDelete(null);
+    }
+  };
 
-  const notFound = !dataFiltered.length && !!filterName;
+  const handleOpenEditForm = (user: any) => {
+    setSelectedUser(user);
+    setEditOpenForm(true);
+  };
+
+  const handleCloseEditForm = () => {
+    setEditOpenForm(false);
+    setSelectedUser(null);
+  };
+
+  const handleGetAllUser = async () => {
+    const res = await userService.getAll(search);
+    setUsers(res.data);
+  };
+
+  const handleToggleActive = async (userId: number) => {
+    try {
+      await userService.toggleActiveUser(userId);
+      toast.success('User status updated');
+      handleGetAllUser();
+    } catch (error) {
+      console.error('Error toggling user status:', error);
+      toast.error('Failed to update user status');
+    }
+  };
+
+  const handleAskToggle = (user: any) => {
+    setSelectedUserToToggle(user);
+    setConfirmToggleOpen(true);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!selectedUserToToggle) return;
+
+    try {
+      await handleToggleActive(selectedUserToToggle.id);
+    } finally {
+      setConfirmToggleOpen(false);
+      setSelectedUserToToggle(null);
+    }
+  };
+
+  useEffect(() => {
+    handleGetAllUser();
+  }, [debouncedSearch]);
 
   return (
     <DashboardContent>
+      <ConfirmModal
+        open={confirmToggleOpen}
+        onClose={() => setConfirmToggleOpen(false)}
+        onConfirm={handleConfirmToggle}
+        type="warning"
+        title="Confirm Action"
+        message={`Are you sure you want to ${selectedUserToToggle?.active ? 'deactivate' : 'activate'} this user?`}
+        confirmText="Yes"
+        cancelText="Cancel"
+      />
+
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        type="error"
+        title="Confirm Delete"
+        message={`Are you sure you want to delete user "${selectedUserToDelete?.email}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
+      <EditUserDialog
+        open={openEditForm}
+        onClose={handleCloseEditForm}
+        user={selectedUser}
+        onUpdated={handleGetAllUser}
+      />
+
       <Box
         sx={{
           mb: 5,
@@ -51,79 +145,32 @@ export function UserView() {
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
           Users
         </Typography>
-        <Button
-          variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-        >
-          New user
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <TextField
+            label="Search by Email"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            size="small"
+          />
+        </Box>
       </Box>
 
+      {/* Table for displaying discounts */}
       <Card>
-        <UserTableToolbar
-          numSelected={table.selected.length}
-          filterName={filterName}
-          onFilterName={(event: React.ChangeEvent<HTMLInputElement>) => {
-            setFilterName(event.target.value);
-            table.onResetPage();
-          }}
-        />
-
         <Scrollbar>
-          <TableContainer sx={{ overflow: 'unset' }}>
-            <Table sx={{ minWidth: 800 }}>
-              <UserTableHead
-                order={table.order}
-                orderBy={table.orderBy}
-                rowCount={_users.length}
-                numSelected={table.selected.length}
-                onSort={table.onSort}
-                onSelectAllRows={(checked) =>
-                  table.onSelectAllRows(
-                    checked,
-                    _users.map((user) => user.id)
-                  )
-                }
-                headLabel={[
-                  { id: 'name', label: 'Name' },
-                  { id: 'company', label: 'Company' },
-                  { id: 'role', label: 'Role' },
-                  { id: 'isVerified', label: 'Verified', align: 'center' },
-                  { id: 'status', label: 'Status' },
-                  { id: '' },
-                ]}
-              />
-              <TableBody>
-                {dataFiltered
-                  .slice(
-                    table.page * table.rowsPerPage,
-                    table.page * table.rowsPerPage + table.rowsPerPage
-                  )
-                  .map((row) => (
-                    <UserTableRow
-                      key={row.id}
-                      row={row}
-                      selected={table.selected.includes(row.id)}
-                      onSelectRow={() => table.onSelectRow(row.id)}
-                    />
-                  ))}
-
-                <TableEmptyRows
-                  height={68}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, _users.length)}
-                />
-
-                {notFound && <TableNoData searchQuery={filterName} />}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <UserTable
+            users={users}
+            table={table}
+            handleOpenEditForm={handleOpenEditForm}
+            handleToggleActive={handleAskToggle}
+            handleDelete={handleAskDelete}
+          />
         </Scrollbar>
 
         <TablePagination
           component="div"
           page={table.page}
-          count={_users.length}
+          count={users.length}
           rowsPerPage={table.rowsPerPage}
           onPageChange={table.onChangePage}
           rowsPerPageOptions={[5, 10, 25]}
@@ -132,72 +179,4 @@ export function UserView() {
       </Card>
     </DashboardContent>
   );
-}
-
-// ----------------------------------------------------------------------
-
-export function useTable() {
-  const [page, setPage] = useState(0);
-  const [orderBy, setOrderBy] = useState('name');
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
-
-  const onSort = useCallback(
-    (id: string) => {
-      const isAsc = orderBy === id && order === 'asc';
-      setOrder(isAsc ? 'desc' : 'asc');
-      setOrderBy(id);
-    },
-    [order, orderBy]
-  );
-
-  const onSelectAllRows = useCallback((checked: boolean, newSelecteds: string[]) => {
-    if (checked) {
-      setSelected(newSelecteds);
-      return;
-    }
-    setSelected([]);
-  }, []);
-
-  const onSelectRow = useCallback(
-    (inputValue: string) => {
-      const newSelected = selected.includes(inputValue)
-        ? selected.filter((value) => value !== inputValue)
-        : [...selected, inputValue];
-
-      setSelected(newSelected);
-    },
-    [selected]
-  );
-
-  const onResetPage = useCallback(() => {
-    setPage(0);
-  }, []);
-
-  const onChangePage = useCallback((event: unknown, newPage: number) => {
-    setPage(newPage);
-  }, []);
-
-  const onChangeRowsPerPage = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setRowsPerPage(parseInt(event.target.value, 10));
-      onResetPage();
-    },
-    [onResetPage]
-  );
-
-  return {
-    page,
-    order,
-    onSort,
-    orderBy,
-    selected,
-    rowsPerPage,
-    onSelectRow,
-    onResetPage,
-    onChangePage,
-    onSelectAllRows,
-    onChangeRowsPerPage,
-  };
 }
