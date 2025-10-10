@@ -8,6 +8,7 @@ import {
   FaCogs,
   FaExclamationTriangle,
   FaSignOutAlt,
+  FaCode,
 } from 'react-icons/fa';
 
 // ----------------------------------------------------------------------
@@ -24,6 +25,11 @@ export const navData: NavItem[] = [
     title: 'Dashboard',
     path: '/',
     icon: <FaTachometerAlt size={20} />,
+  },
+  {
+    title: 'API Key',
+    path: '/api-keys',
+    icon: <FaCode size={20} />,
   },
   {
     title: 'Users',
