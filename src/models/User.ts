@@ -1,0 +1,16 @@
+export default interface User {
+  id: number;
+  email: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  avatarUrl?: string;
+  gender?: string;
+  address?: string;
+  password: string;
+  phone?: string;
+  createdAt: string; // Date in ISO string format
+  updatedAt: string; // Date in ISO string format
+  active: boolean;
+}
