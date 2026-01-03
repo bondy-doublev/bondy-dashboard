@@ -17,6 +17,7 @@ export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const ApiKeyPage = lazy(() => import('src/pages/api-key'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
+export const AdvertPage = lazy(() => import('src/pages/advert'));
 export const ProductsPage = lazy(() => import('src/pages/products'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const ReportPage = lazy(() => import('src/pages/report'));
@@ -55,6 +56,7 @@ export const routesSection: RouteObject[] = [
       { path: 'users', element: <UserPage /> },
       { path: 'api-keys', element: <ApiKeyPage /> },
       { path: 'products', element: <ProductsPage /> },
+      { path: 'adverts', element: <AdvertPage /> },
       { path: 'blog', element: <BlogPage /> },
       { path: 'reports', element: <ReportPage /> },
     ],

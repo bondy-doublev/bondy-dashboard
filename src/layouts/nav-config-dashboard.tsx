@@ -9,6 +9,7 @@ import {
   FaExclamationTriangle,
   FaSignOutAlt,
   FaCode,
+  FaBullhorn,
 } from 'react-icons/fa';
 
 // ----------------------------------------------------------------------
@@ -37,24 +38,9 @@ export const navData: NavItem[] = [
     icon: <FaUsers size={20} />,
   },
   {
-    title: 'Connections',
-    path: '/connections',
-    icon: <FaUserFriends size={20} />,
-  },
-  {
-    title: 'Posts',
-    path: '/posts',
-    icon: <FaNewspaper size={20} />,
-    info: (
-      <Label color="error" variant="inverted">
-        +5
-      </Label>
-    ),
-  },
-  {
-    title: 'Comments',
-    path: '/comments',
-    icon: <FaCommentDots size={20} />,
+    title: 'Adverts',
+    path: '/adverts',
+    icon: <FaBullhorn size={20} />,
   },
   {
     title: 'Reports',
@@ -65,15 +51,5 @@ export const navData: NavItem[] = [
         2
       </Label>
     ),
-  },
-  {
-    title: 'Settings',
-    path: '/settings',
-    icon: <FaCogs size={20} />,
-  },
-  {
-    title: 'Logout',
-    path: '/logout',
-    icon: <FaSignOutAlt size={20} />,
   },
 ];
