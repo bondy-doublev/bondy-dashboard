@@ -16,22 +16,20 @@ import { AdvertRequestStatus } from 'src/enums';
 
 const STATUS_OPTIONS: AdvertRequestStatus[] = [
   AdvertRequestStatus.PENDING,
-  AdvertRequestStatus.WAITING_PAYMENT,
-  AdvertRequestStatus.PAID,
   AdvertRequestStatus.RUNNING,
   AdvertRequestStatus.DONE,
   AdvertRequestStatus.REJECTED,
   AdvertRequestStatus.CANCELLED,
+  AdvertRequestStatus.ACCEPTED,
 ];
 
 export const ADVERT_STATUS_LABEL: Record<AdvertRequestStatus, string> = {
   [AdvertRequestStatus.PENDING]: 'Pending approval',
-  [AdvertRequestStatus.WAITING_PAYMENT]: 'Waiting for payment',
-  [AdvertRequestStatus.PAID]: 'Paid',
   [AdvertRequestStatus.RUNNING]: 'Running',
   [AdvertRequestStatus.DONE]: 'Completed',
   [AdvertRequestStatus.REJECTED]: 'Rejected',
   [AdvertRequestStatus.CANCELLED]: 'Cancelled',
+  [AdvertRequestStatus.ACCEPTED]: 'Accepted',
 };
 
 export default function AdvertView() {
@@ -42,6 +40,7 @@ export default function AdvertView() {
   const debouncedSearch = useDebounce(search, 500);
   const [status, setStatus] = useState<AdvertRequestStatus | ''>('');
   const [nextStatus, setNextStatus] = useState<AdvertRequestStatus | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedAdvert, setSelectedAdvert] = useState<any | null>(null);
@@ -58,6 +57,7 @@ export default function AdvertView() {
 
       const res = await advertService.getAllForAdmin(params);
       setAdverts(res?.items || []);
+      setTotalItems(res?.pagination?.total || 0); // <-- đây
     } catch {
       toast.error('Failed to load adverts');
     }
@@ -145,7 +145,7 @@ export default function AdvertView() {
         <TablePagination
           component="div"
           page={table.page}
-          count={adverts.length}
+          count={totalItems}
           rowsPerPage={table.rowsPerPage}
           onPageChange={table.onChangePage}
           rowsPerPageOptions={[5, 10, 25]}

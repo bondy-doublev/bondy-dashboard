@@ -25,12 +25,11 @@ export const ADVERT_STATUS_META: Record<
   { label: string; color: ChipProps['color'] }
 > = {
   pending: { label: 'Pending approval', color: 'warning' },
-  waiting_payment: { label: 'Waiting for payment', color: 'info' },
-  paid: { label: 'Paid', color: 'primary' },
   running: { label: 'Running', color: 'success' },
   done: { label: 'Completed', color: 'default' },
   rejected: { label: 'Rejected', color: 'error' },
   cancelled: { label: 'Cancelled', color: 'secondary' },
+  accepted: { label: 'Accepted', color: 'primary' },
 };
 
 const STATUS_COLOR: Record<string, any> = {
