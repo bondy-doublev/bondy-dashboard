@@ -64,7 +64,7 @@ export default function EditUserDialog({ open, onClose, user, onUpdated }: EditU
       let uploadedUrl = formData.avatarUrl;
 
       if (imageFile) {
-        const uploadRes = await uploadService.uploadCloudinary(imageFile);
+        const uploadRes = await uploadService.uploadLocal(imageFile);
         uploadedUrl = uploadRes.data;
       }
 

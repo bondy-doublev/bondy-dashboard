@@ -13,6 +13,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import dayjs from 'dayjs';
 import { AdvertRequestStatus } from 'src/enums';
+import { resolveFileUrl } from 'src/utils/fileUrl';
 
 interface Props {
   open: boolean;
@@ -90,7 +91,7 @@ export default function AdPreviewDialog({ open, advert, onClose }: Props) {
                 style={{ width: '100%', maxHeight: 360, objectFit: 'cover' }}
               />
             ) : (
-              <video src={firstMedia.url} controls style={{ width: '100%', maxHeight: 360 }} />
+              <video src={resolveFileUrl(firstMedia.url)} controls style={{ width: '100%', maxHeight: 360 }} />
             )}
           </Box>
         )}
