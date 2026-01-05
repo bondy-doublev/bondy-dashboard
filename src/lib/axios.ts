@@ -28,6 +28,7 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
+  config.headers['x-api-key'] = import.meta.env.VITE_REACT_APP_API_KEY || '';
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
