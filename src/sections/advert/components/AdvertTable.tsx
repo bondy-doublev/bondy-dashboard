@@ -144,7 +144,7 @@ export default function AdvertTable({ adverts, table, onUpdateStatus, onPreview 
         </TableHead>
 
         <TableBody>
-          {adverts.map((ad) => {
+          {adverts?.map((ad) => {
             const status = ad.status as AdvertRequestStatus;
 
             return (
@@ -200,7 +200,7 @@ export default function AdvertTable({ adverts, table, onUpdateStatus, onPreview 
       {/* STATUS MENU */}
       <Menu anchorEl={anchorEl} open={open} onClose={handleCloseMenu}>
         {selectedAd &&
-          getAllowedStatuses(selectedAd).map((s) => (
+          getAllowedStatuses(selectedAd)?.map((s) => (
             <MenuItem
               key={s}
               disabled={s === selectedAd.status}

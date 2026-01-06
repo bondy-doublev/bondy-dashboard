@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import React from 'react';
 import User from 'src/models/User';
+import { resolveFileUrl } from 'src/utils/fileUrl';
 
 interface Props {
   users: User[];
@@ -69,7 +70,7 @@ export default function UserTable({
                 <TableCell>
                   {user.avatarUrl ? (
                     <img
-                      src={user.avatarUrl}
+                      src={resolveFileUrl(user.avatarUrl)}
                       alt="avatar"
                       width={40}
                       height={40}

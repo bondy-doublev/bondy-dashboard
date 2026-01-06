@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { userService } from 'src/services/userService';
 import { uploadService } from 'src/services/uploadService';
+import { resolveFileUrl } from 'src/utils/fileUrl';
 
 interface EditUserDialogProps {
   open: boolean;
@@ -95,7 +96,7 @@ export default function EditUserDialog({ open, onClose, user, onUpdated }: EditU
             src={
               imageFile
                 ? URL.createObjectURL(imageFile)
-                : formData.avatarUrl || '/assets/avatar_default.jpg'
+                : resolveFileUrl(formData.avatarUrl) || '/assets/avatar_default.jpg'
             }
             alt="avatar"
             width="100"

@@ -86,7 +86,7 @@ export default function AdPreviewDialog({ open, advert, onClose }: Props) {
           >
             {firstMedia.type === 'IMAGE' ? (
               <img
-                src={firstMedia.url}
+                src={resolveFileUrl(firstMedia.url)}
                 alt={advert.title}
                 style={{ width: '100%', maxHeight: 360, objectFit: 'cover' }}
               />

@@ -117,7 +117,7 @@ export default function AdvertView() {
         >
           <MenuItem value="">All</MenuItem>
 
-          {STATUS_OPTIONS.map((s) => (
+          {STATUS_OPTIONS?.map((s) => (
             <MenuItem key={s} value={s}>
               {ADVERT_STATUS_LABEL[s]}
             </MenuItem>
