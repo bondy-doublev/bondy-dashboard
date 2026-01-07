@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
-import { getAccessToken, removeAccessToken, setAccessToken } from 'src/utils/token';
+import { clearCookies, getAccessToken, removeAccessToken, setAccessToken } from 'src/utils/token';
 
 const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
 
@@ -28,10 +27,18 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
-  config.headers['x-api-key'] = import.meta.env.VITE_REACT_APP_API_KEY || '';
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const apiKey = import.meta.env.VITE_REACT_APP_API_KEY;
+
+  if (config.headers) {
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (apiKey) {
+      config.headers['x-api-key'] = apiKey;
+    }
   }
+
   return config;
 });
 
@@ -39,6 +46,21 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const apiKey = import.meta.env.VITE_API_KEY;
+
+    const isLogoutRequest = originalRequest?.url?.includes('/auth/logout');
+
+    if (error.response?.status === 401 && isLogoutRequest) {
+      removeAccessToken();
+      localStorage.removeItem('refresh_token');
+      clearCookies();
+
+      const pathname = window.location.pathname;
+      const locale = pathname.split('/')[1] || 'vi';
+      window.location.href = `/${locale}/signin`;
+
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -46,6 +68,7 @@ api.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         }).then((token: string) => {
           originalRequest.headers.Authorization = `Bearer ${token}`;
+          originalRequest.headers['x-api-key'] = apiKey;
           return api(originalRequest);
         });
       }
@@ -54,26 +77,33 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Lấy refresh_token từ localStorage
-        const refreshToken = localStorage.getItem('refresh_token');
+        const res = await api.post(
+          '/auth/refresh',
+          {},
+          {
+            headers: {
+              'x-api-key': apiKey,
+            },
+          }
+        );
 
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        // Gửi refresh_token qua body
-        const res = await api.post('/auth/refresh', {
-          refresh_token: refreshToken,
-        });
-        const newAccessToken = res.data.accessToken;
+        const newAccessToken = res.data.data.accessToken;
         setAccessToken(newAccessToken);
         processQueue(null, newAccessToken);
+
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        originalRequest.headers['x-api-key'] = apiKey;
+
         return api(originalRequest);
       } catch (err) {
         processQueue(err, null);
         removeAccessToken();
-        localStorage.removeItem('refresh_token'); // Xóa refresh token khỏi localStorage khi không hợp lệ
+        localStorage.removeItem('refresh_token');
+
+        const pathname = window.location.pathname;
+        const locale = pathname.split('/')[1] || 'vi';
+        window.location.href = `/${locale}/signin`;
+
         return Promise.reject(err);
       } finally {
         isRefreshing = false;

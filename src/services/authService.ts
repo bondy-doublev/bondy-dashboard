@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { api } from 'src/lib/axios';
 import { removeAccessToken, setAccessToken } from 'src/utils/token';
 import axios, { AxiosResponse } from 'axios';
@@ -8,7 +7,7 @@ const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/auth`;
 export const authService = {
   // Đăng nhập
   async login(email: string, password: string) {
-    const response: AxiosResponse = await api.post(`${API_URL}/login`, {
+    const response: AxiosResponse = await api.post(`${API_URL}/admin/login`, {
       email,
       password,
     });
@@ -23,6 +22,7 @@ export const authService = {
   // Logout
   async logout() {
     try {
+      await api.post(`${API_URL}/logout`);
       removeAccessToken();
     } catch (error) {
       throw new Error('Failed to log out');
