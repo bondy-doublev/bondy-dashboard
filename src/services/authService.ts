@@ -8,7 +8,7 @@ const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/auth`;
 export const authService = {
   // Đăng nhập
   async login(email: string, password: string) {
-    const response: AxiosResponse = await api.post(`${API_URL}/login`, {
+    const response: AxiosResponse = await api.post(`${API_URL}/admin/login`, {
       email,
       password,
     });

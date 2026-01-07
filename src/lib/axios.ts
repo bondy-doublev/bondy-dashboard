@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getAccessToken, removeAccessToken, setAccessToken } from 'src/utils/token';
 
 const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
+const apiKey = import.meta.env.VITE_REACT_APP_API_KEY;
 
 export const api = axios.create({
   baseURL,
@@ -28,7 +29,7 @@ const processQueue = (error: any, token: string | null = null) => {
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
-  config.headers['x-api-key'] = import.meta.env.VITE_REACT_APP_API_KEY || '';
+  config.headers['x-api-key'] = apiKey || '';
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -62,9 +63,15 @@ api.interceptors.response.use(
         }
 
         // Gửi refresh_token qua body
-        const res = await api.post('/auth/refresh', {
-          refresh_token: refreshToken,
-        });
+        const res = await api.post(
+          '/auth/refresh',
+          {},
+          {
+            headers: {
+              'x-api-key': apiKey,
+            },
+          }
+        );
         const newAccessToken = res.data.accessToken;
         setAccessToken(newAccessToken);
         processQueue(null, newAccessToken);
