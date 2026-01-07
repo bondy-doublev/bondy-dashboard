@@ -1,14 +1,25 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
-import { getAccessToken, removeAccessToken, setAccessToken } from 'src/utils/token';
+import { clearCookies, getAccessToken, removeAccessToken, setAccessToken } from 'src/utils/token';
 
 const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
 const apiKey = import.meta.env.VITE_REACT_APP_API_KEY;
 
+// Instance chính dùng cho tất cả request bình thường (có interceptor)
 export const api = axios.create({
   baseURL,
   withCredentials: true,
 });
+
+// Instance riêng để gọi refresh token (KHÔNG có response interceptor để tránh loop)
+const refreshApi = axios.create({
+  baseURL,
+  withCredentials: true,
+});
+
+// Thêm x-api-key cho refresh instance nếu backend yêu cầu
+if (apiKey) {
+  refreshApi.defaults.headers['x-api-key'] = apiKey;
+}
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -27,66 +38,98 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Interceptor request: thêm Authorization và x-api-key
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
-  config.headers['x-api-key'] = apiKey || '';
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+
+  if (config.headers) {
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (apiKey) {
+      config.headers['x-api-key'] = apiKey;
+    }
   }
+
   return config;
 });
 
+// Interceptor response: xử lý 401 và refresh token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isLogoutRequest = originalRequest?.url?.includes('/auth/logout');
+
+    // Trường hợp logout trả 401 → xóa token và redirect
+    if (error.response?.status === 401 && isLogoutRequest) {
+      removeAccessToken();
+      localStorage.removeItem('refresh_token');
+      clearCookies();
+      window.location.href = `/signin`;
+      return Promise.reject(error);
+    }
+
+    // Chỉ xử lý 401 cho request chưa retry và không phải là request refresh
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
       if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => {
+        // Đang refresh → đưa request vào queue chờ
+        return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then((token: string) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            if (apiKey) {
+              originalRequest.headers['x-api-key'] = apiKey;
+            }
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
       }
 
+      // Bắt đầu refresh
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Lấy refresh_token từ localStorage
-        const refreshToken = localStorage.getItem('refresh_token');
+        // Dùng refreshApi (không có interceptor) để gọi refresh
+        const res = await refreshApi.post('/auth/refresh', {});
 
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
+        const newAccessToken = res.data.data.accessToken;
+        setAccessToken(newAccessToken);
+
+        // Giải phóng queue
+        processQueue(null, newAccessToken);
+
+        // Thêm token mới vào original request và retry
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        if (apiKey) {
+          originalRequest.headers['x-api-key'] = apiKey;
         }
 
-        // Gửi refresh_token qua body
-        const res = await api.post(
-          '/auth/refresh',
-          {},
-          {
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }
-        );
-        const newAccessToken = res.data.accessToken;
-        setAccessToken(newAccessToken);
-        processQueue(null, newAccessToken);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
-      } catch (err) {
-        processQueue(err, null);
+      } catch (refreshError) {
+        // Refresh thất bại → reject queue và logout
+        processQueue(refreshError, null);
         removeAccessToken();
-        localStorage.removeItem('refresh_token'); // Xóa refresh token khỏi localStorage khi không hợp lệ
-        return Promise.reject(err);
+        localStorage.removeItem('refresh_token');
+        clearCookies();
+        window.location.href = `/signin`;
+
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
+    // Các lỗi khác (không phải 401 hoặc đã retry) → reject bình thường
     return Promise.reject(error);
   }
 );

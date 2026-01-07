@@ -16,6 +16,7 @@ import { useRouter, usePathname } from 'src/routes/hooks';
 
 import { _myAccount } from 'src/_mock';
 import { Link } from 'react-router-dom';
+import { authService } from 'src/services/authService';
 
 // ----------------------------------------------------------------------
 
@@ -50,6 +51,14 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
     },
     [handleClosePopover, router]
   );
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.log('logout failed');
+    }
+  };
 
   return (
     <>
@@ -131,7 +140,7 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
 
         <Box sx={{ p: 1 }}>
           <Link to={'/signin'}>
-            <Button fullWidth color="error" size="medium" variant="text">
+            <Button onClick={handleLogout} fullWidth color="error" size="medium" variant="text">
               Logout
             </Button>
           </Link>

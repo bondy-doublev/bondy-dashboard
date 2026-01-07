@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { api } from 'src/lib/axios';
 import { removeAccessToken, setAccessToken } from 'src/utils/token';
 import axios, { AxiosResponse } from 'axios';
@@ -23,6 +22,7 @@ export const authService = {
   // Logout
   async logout() {
     try {
+      await api.post('/auth/logout');
       removeAccessToken();
     } catch (error) {
       throw new Error('Failed to log out');
