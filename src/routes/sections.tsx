@@ -16,6 +16,7 @@ export const DashboardPage = lazy(() => import('src/pages/dashboard'));
 export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
 export const ApiKeyPage = lazy(() => import('src/pages/api-key'));
+export const FaqPage = lazy(() => import('src/pages/faq'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const AdvertPage = lazy(() => import('src/pages/advert'));
 export const ProductsPage = lazy(() => import('src/pages/products'));
@@ -55,6 +56,7 @@ export const routesSection: RouteObject[] = [
       { index: true, element: <DashboardPage /> },
       { path: 'users', element: <UserPage /> },
       { path: 'api-keys', element: <ApiKeyPage /> },
+      { path: 'faqs', element: <FaqPage /> },
       { path: 'products', element: <ProductsPage /> },
       { path: 'adverts', element: <AdvertPage /> },
       { path: 'blog', element: <BlogPage /> },

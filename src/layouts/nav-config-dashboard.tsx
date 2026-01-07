@@ -52,4 +52,9 @@ export const navData: NavItem[] = [
       </Label>
     ),
   },
+  {
+    title: 'Faqs',
+    path: '/faqs',
+    icon: <FaCommentDots size={20} />,
+  }
 ];
