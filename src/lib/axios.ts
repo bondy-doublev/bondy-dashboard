@@ -2,11 +2,24 @@ import axios from 'axios';
 import { clearCookies, getAccessToken, removeAccessToken, setAccessToken } from 'src/utils/token';
 
 const baseURL = import.meta.env.VITE_REACT_APP_API_URL;
+const apiKey = import.meta.env.VITE_REACT_APP_API_KEY;
 
+// Instance chính dùng cho tất cả request bình thường (có interceptor)
 export const api = axios.create({
   baseURL,
   withCredentials: true,
 });
+
+// Instance riêng để gọi refresh token (KHÔNG có response interceptor để tránh loop)
+const refreshApi = axios.create({
+  baseURL,
+  withCredentials: true,
+});
+
+// Thêm x-api-key cho refresh instance nếu backend yêu cầu
+if (apiKey) {
+  refreshApi.defaults.headers['x-api-key'] = apiKey;
+}
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -25,15 +38,14 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Interceptor request: thêm Authorization và x-api-key
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
-  const apiKey = import.meta.env.VITE_REACT_APP_API_KEY;
 
   if (config.headers) {
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
     if (apiKey) {
       config.headers['x-api-key'] = apiKey;
     }
@@ -42,11 +54,11 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Interceptor response: xử lý 401 và refresh token
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const apiKey = import.meta.env.VITE_API_KEY;
 
     const isLogoutRequest = originalRequest?.url?.includes('/auth/logout');
 
@@ -54,57 +66,57 @@ api.interceptors.response.use(
       removeAccessToken();
       localStorage.removeItem('refresh_token');
       clearCookies();
-
-      const pathname = window.location.pathname;
-      const locale = pathname.split('/')[1] || 'vi';
-      window.location.href = `/${locale}/signin`;
-
+      window.location.href = `/signin`;
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
       if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => {
+        // Đang refresh → đưa request vào queue chờ
+        return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then((token: string) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          originalRequest.headers['x-api-key'] = apiKey;
-          return api(originalRequest);
-        });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            if (apiKey) {
+              originalRequest.headers['x-api-key'] = apiKey;
+            }
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const res = await api.post(
-          '/auth/refresh',
-          {},
-          {
-            headers: {
-              'x-api-key': apiKey,
-            },
-          }
-        );
+        const res = await refreshApi.post('/auth/refresh', {});
 
         const newAccessToken = res.data.data.accessToken;
         setAccessToken(newAccessToken);
+
         processQueue(null, newAccessToken);
 
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        originalRequest.headers['x-api-key'] = apiKey;
+        if (apiKey) {
+          originalRequest.headers['x-api-key'] = apiKey;
+        }
 
         return api(originalRequest);
-      } catch (err) {
-        processQueue(err, null);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
         removeAccessToken();
         localStorage.removeItem('refresh_token');
+        clearCookies();
+        window.location.href = `/signin`;
 
-        const pathname = window.location.pathname;
-        const locale = pathname.split('/')[1] || 'vi';
-        window.location.href = `/${locale}/signin`;
-
-        return Promise.reject(err);
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
