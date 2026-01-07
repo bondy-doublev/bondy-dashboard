@@ -5,7 +5,7 @@ export function resolveFileUrl(path: string | null | undefined) {
     return path;
   }
 
-  const base = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL ?? '';
+  const base = import.meta.env.VITE_REACT_UPLOAD_BASE_URL ?? '';
   const prefixBase = base.endsWith('/') ? base.slice(0, -1) : base;
   const prefixPath = path.startsWith('/') ? path : `/${path}`;
 
